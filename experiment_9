@@ -1,1 +1,114 @@
+hdrs = filexm.h
+opts = -g -c
+srcs = filexm.c
+objs = filexm.o
 
+all:        filexm
+
+filexm:     $(objs)
+            gcc $(objs) -o filexm
+
+filexm.o:   $(srcs) $(hdrs)
+            gcc $(opts) $(srcs)
+
+clean:      rm filexm *.o
+
+/*
+ * Filename:    filexm.h
+ */
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#define BUFSZ 100
+
+int j;
+char buff[256];
+
+//判断文件类型
+void is_filetype(mode_t mode){
+
+    printf("File Type:\t");//显示文件类型
+
+    if(S_ISLNK(mode)) printf("Symbolic Linke\n");//链接文件
+    else if(S_ISREG(mode)) printf("Regular\n");//普通文件
+    else if(S_ISDIR(mode)) printf("Directoy\n");//目录文件
+    else if(S_ISCHR(mode)) printf("Character Device\n");//字符设备
+    else if(S_ISBLK(mode)) printf("Block Device\n");//块设备
+    else if(S_ISFIFO(mode)) printf("FIFO\n");//管道文件
+    else if(S_ISSOCK(mode)) printf("Socket\n");//套接口
+    else printf("Unkown type\n");//不可识别的设备
+}
+
+/*
+ * Filename:    filexm.c
+ */
+#include "filexm.h"
+
+int main(int argc, char *argv[]){
+    int fd; //打开文件的文件描述字
+    struct stat buf;//保存打开文件信息的缓冲区
+    char data[BUFSZ]; //文件读写缓冲区
+
+    // 检查命令是否带有指定的文件名
+    if(argc!=2){
+        perror("USAGE: ./filexm filename");
+        exit(EXIT_FAILURE);
+    }
+
+    // 检查命令指定的文件名是否存在,如果存在打开该文件
+    if((fd = open(argv[1],O_RDWR)) <0){
+        perror("File not Open!");
+        exit(EXIT_FAILURE);
+    }
+
+    //指定的的文件打开,是否能读出该文件的控制信息
+    if((fstat(fd,&buf)) < 0){
+        perror("File stat error!");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Enter a number:1--append;2--search;3--insert;4--delete\n");
+    int i;
+    scanf("%d",&i);
+    switch(i){
+        case 1:
+            printf("Enter the information:\n");
+            lseek(fd,0,SEEK_END);
+            scanf("%s",data);
+            write(fd,data,BUFSZ);
+            printf("\n");
+            break;
+        case 2:
+            printf("enter the number to search");
+            scanf("%d",&j);
+            lseek(fd,(j-1)*BUFSZ,SEEK_SET);
+            read(fd,data,BUFSZ);
+            printf("%s",data);
+            break;
+        case 3:
+            printf("enter the number to insert");
+            scanf("%d",&j);
+            lseek(fd,(j-1)*BUFSZ,SEEK_SET);
+            write(fd,data,BUFSZ);
+            printf("\n");
+            break;
+        case 4:
+            printf("enter the number to delete");
+            scanf("%d",&j);
+            lseek(fd,(j+1)*BUFSZ,SEEK_SET);
+            read(fd,buff,1000);
+            lseek(fd,(j-1)*BUFSZ,SEEK_SET);
+            write(fd,buff,1000);
+    }
+
+    //关闭文件
+    if(close(fd) <0){
+        perror("Close error");
+        exit(EXIT_FAILURE);
+    }
+    return EXIT_SUCCESS;
+}
